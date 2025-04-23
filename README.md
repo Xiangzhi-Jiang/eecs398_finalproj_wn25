@@ -35,20 +35,6 @@ These features were selected because they are:
 - Plausible proxies for user satisfaction
 - Interpretable and useful for platform design or recipe refinement
 
-```python
-recipes = pd.read_csv("~/downloads/RAW_recipes.csv")
-interactions = pd.read_csv("~/downloads/RAW_interactions.csv")
-
-print(f"Number of recipes: {recipes.shape[0]}")
-print(f"Number of interactions: {interactions.shape[0]}")
-
-print("\nRecipe columns:")
-print(recipes.columns.tolist())
-
-print("\nInteraction columns:")
-print(interactions.columns.tolist())
-
-```
 ## Step 2: Data Cleaning and Exploratory Data Analysis
 
 ### Cleaning Steps and Rationale
@@ -122,15 +108,40 @@ merged["avg_rating_filled"] = merged["avg_rating"].fillna(merged["avg_rating"].m
 
 ```
 
+## Step 3: Defining the Prediction Task
 
-## Step 3: Framing a Prediction Problem
+### 🎯 Prediction Target: `avg_rating`
 
-In this project, I chose to predict the average rating of a recipe based on its known attributes at the time of submission. I framed this as a regression task because the target variable—average user rating—is continuous. I selected this prediction problem because it aligns well with real-world recommendation goals and allows me to explore which features contribute most to perceived recipe quality. I ensured that all predictors are available before user feedback, making the setup both practical and forward-looking.
+We compute the average rating for each recipe from all available user interactions. This rating is bounded between 1 and 5 and serves as the ground truth for our regression model.
+
+### ✅ Justification for Feature Usage
+
+All four input features were chosen because they are:
+- Available at the time of recipe publication
+- Likely to influence how users perceive and rate a recipe
+
+| Feature         | Reason for Inclusion                                                                 |
+|-----------------|---------------------------------------------------------------------------------------|
+| `minutes`       | Longer or very short prep times may affect user satisfaction                         |
+| `n_steps`       | Captures procedural complexity — longer instructions might deter or attract users     |
+| `n_ingredients` | Reflects how resource-intensive a recipe is                                           |
+| `tags`          | Encodes important categorical signals such as dietary restrictions or seasonal usage |
+
+### 📏 Evaluation Metrics
+
+To evaluate the quality of our model, we use:
+- **Mean Squared Error (MSE)** 
+- **R² Score (Coefficient of Determination)**
+- 
 
 ## Step 4: Baseline Model
+To build a simple and interpretable reference model, we start with a **linear regression** using four original features:
+### Preprocessing
 
-This section builds a baseline linear regression model to predict average recipe ratings using original features: minutes, n_steps, n_ingredients, and tags. It splits the data into training and testing sets, extracts the first tag from the list of tags, and applies preprocessing with standardization for numeric features and one-hot encoding for categorical features. The model is trained using a Pipeline, and its performance is evaluated using mean squared error (MSE) and R-squared (R²) on the test set.
-
+We applied the following preprocessing pipeline:
+- **Numerical features** (`minutes`, `n_steps`, `n_ingredients`): Scaled with `StandardScaler`
+- **Categorical features** (`tags`): Simplified to a single tag and encoded using `OneHotEncoder`
+This ensures consistent scaling and categorical feature handling.
 
 ```python
 model_df = filtered[["minutes", "n_steps", "n_ingredients", "tags", "avg_rating"]].dropna()
@@ -176,12 +187,18 @@ print(f"  R^2: {r2:.4f}")
 
 
 ```
+## Step 5: Final Model with Feature Engineering
 
+To enhance the model's expressiveness and capture more nuanced structure in the data, we engineer the following new features:
 
-## Step 5: Final Model
+- `log_minutes`: logarithmic transformation of preparation time to compress skewed distribution
+- `step_density`: number of steps per minute (complexity relative to time)
+- `ingredient_density`: number of ingredients per minute (resource density)
+- `steps_per_ing`: number of steps per ingredient (a proxy for granularity or precision)
 
-This section builds a final Random Forest model using four engineered features and the first tag. It applies preprocessing, performs hyperparameter tuning with GridSearchCV, and evaluates the model using MSE and R² on the test set.
-
+These derived features aim to capture **nonlinear interactions** between effort, complexity, and recipe structure.
+The categorical `tags` column is still simplified to its first tag and one-hot encoded.
+We use a **Random Forest Regressor** with hyperparameter tuning via `GridSearchCV` to handle nonlinearity and categorical splits efficiently.
 
 ```python
 model_df = filtered[["minutes", "n_steps", "n_ingredients", "tags", "avg_rating"]].dropna()
