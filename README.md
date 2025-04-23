@@ -1,31 +1,39 @@
 # Exploring Recipes dataset via Random Forest
-```python
-import numpy as np
-import pandas as pd
-import time
-
-from sklearn.ensemble import RandomForestRegressor
-from sklearn.linear_model import LinearRegression
-from sklearn.model_selection import train_test_split, GridSearchCV, ParameterGrid
-from sklearn.compose import ColumnTransformer
-from sklearn.pipeline import Pipeline
-from sklearn.preprocessing import StandardScaler, OneHotEncoder
-from sklearn.metrics import mean_squared_error, r2_score
-
-import plotly.express as px
-
-pd.options.plotting.backend = 'plotly'
-
-# from lec_utils import * # Feel free to uncomment and use this. It'll make your plotly graphs look like ours in lecture!
-```
-
+**Name(s)**: Xiangzhi Jiang
 
 ## Step 1: Introduction
 
-In this project, I aim to **predict the final average rating of recipes** on Food.com based on their features.
-Understanding what makes a recipe highly rated can help platforms improve their recommendation systems and guide users toward recipes they are more likely to enjoy. The target for prediction will be the **average rating per recipe**, computed from individual user ratings.
+> **Core Question**: Can we predict how well a recipe will be rated — before any user has rated it — using only basic information like preparation time, complexity, and tags?
 
+In this project, we focus on forecasting the **average rating** of each recipe on Food.com using only metadata available prior to any user interaction. This includes numeric features that reflect preparation effort, and categorical tags that capture recipe themes or constraints (e.g., "vegan", "holiday", "easy").
 
+Why this matters:
+- Platforms can promote highly rated recipes even before enough user ratings accumulate.
+- Recipe creators can receive feedback on structure and categorization, independent of taste or visuals.
+
+### Datasets
+
+We use two datasets:
+- `RAW_recipes.csv` – 83,782 entries with recipe-level metadata
+- `RAW_interactions.csv` – 731,927 user ratings and reviews
+
+### Task Setup
+
+This is a **regression task**. The response variable is the **average rating per recipe**, calculated from the `RAW_interactions.csv` data.
+
+We limit our model to four features:
+
+| Feature           | Type         | Description                                                                 |
+|-------------------|--------------|-----------------------------------------------------------------------------|
+| `minutes`         | Quantitative | Total time (in minutes) to prepare the recipe                               |
+| `n_steps`         | Quantitative | Number of procedural steps — a proxy for recipe complexity                  |
+| `n_ingredients`   | Quantitative | Count of distinct ingredients used                                          |
+| `tags`            | Categorical  | List of user-assigned labels — dietary, cultural, seasonal, or topical     |
+
+These features were selected because they are:
+- Available before users interact with the recipe
+- Plausible proxies for user satisfaction
+- Interpretable and useful for platform design or recipe refinement
 
 ```python
 recipes = pd.read_csv("~/downloads/RAW_recipes.csv")
@@ -41,12 +49,21 @@ print("\nInteraction columns:")
 print(interactions.columns.tolist())
 
 ```
-
-
 ## Step 2: Data Cleaning and Exploratory Data Analysis
 
-This section merges the recipes and interactions datasets, replaces 0 ratings with NaN, and computes the average rating per recipe. It then parses the nutrition column into individual components (e.g., calories, protein), converts date columns to datetime format, and filters out extreme values using the 2.5–97.5 percent quantiles for minutes, ingredients, steps, and average rating. Afterward, it generates visualizations to explore rating distributions and trends, and fills missing average ratings with the global mean.
+### Cleaning Steps and Rationale
 
+1. **Merge Datasets**  
+   We join the recipe metadata with user interactions using the recipe ID. This allows us to associate each recipe with its user ratings.
+
+2. **Replace Zero Ratings**  
+   Ratings of 0 are treated as invalid or missing, and are replaced with `NaN`. They may arise from submission errors or default placeholders.
+
+3. **Compute Average Rating**  
+   We aggregate individual user ratings to create a per-recipe average — our target variable. This is the value we aim to predict.
+
+4. **Quantile Trimming**  
+   We remove outliers in the quantitative features (`minutes`, `n_ingredients`, `n_steps`) by trimming to the 2.5–97.5 percentile range. This reduces skew and improves model stability.
 
 ```python
 merged = pd.merge(recipes, interactions, how="left", left_on="id", right_on="recipe_id")
@@ -239,7 +256,3 @@ print(f"R²: {r2:.4f}")
 ```
 
 
-
-```python
-
-```
