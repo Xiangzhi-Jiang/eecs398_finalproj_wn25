@@ -152,7 +152,7 @@ All four input features were chosen because they are:
 To evaluate the quality of our model, we use:
 - **Mean Squared Error (MSE)** 
 - **R² Score (Coefficient of Determination)**
-- 
+
 
 ## Step 4: Baseline Model
 To build a simple and interpretable reference model, we start with a **linear regression** using four original features:
