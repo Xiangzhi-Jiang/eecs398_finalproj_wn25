@@ -1,5 +1,5 @@
 # Exploring Recipes dataset via Random Forest
-**Name(s)**: Xiangzhi Jiang
+**Name(s)**: Xiangzhi Jiang (xzjiang@umich.edu)
 
 ## Step 1: Introduction
 
