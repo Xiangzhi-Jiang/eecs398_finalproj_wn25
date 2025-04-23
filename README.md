@@ -51,6 +51,26 @@ These features were selected because they are:
 4. **Quantile Trimming**  
    We remove outliers in the quantitative features (`minutes`, `n_ingredients`, `n_steps`) by trimming to the 2.5–97.5 percentile range. This reduces skew and improves model stability.
 
+### Visual Explorations
+
+#### ⏱️ Average Rating vs. Cooking Time
+
+![Figure 1: Rating vs. Duration](Assets/1.png)
+
+We observe that recipes under 100 minutes tend to have a wider spread of ratings, but overall the average rating remains relatively stable. However, some long-duration recipes receive lower ratings, hinting that `minutes` may capture subtle user frustration or expectation mismatches.
+
+#### 🪜 Average Rating by Number of Steps
+
+![Figure 2: Rating vs. Steps](Assets/2.png)
+
+This plot reveals that highly complex recipes (with more than 20 steps) slightly trend toward higher ratings, suggesting that advanced users may appreciate detailed guidance. However, the overall variation is subtle and nonlinear — supporting later use of feature engineering like `steps_per_ing`.
+
+#### ⭐ Distribution of Average Ratings
+
+![Figure 3: Average Rating Histogram](Assets/3.png)
+
+The average ratings are heavily right-skewed, with most clustered between 4.5 and 5. This distribution suggests user generosity or rating inflation — an important contextual factor when interpreting model performance.
+
 ```python
 merged = pd.merge(recipes, interactions, how="left", left_on="id", right_on="recipe_id")
 merged["rating"] = merged["rating"].replace(0, np.nan)
@@ -271,5 +291,38 @@ print(f"MSE: {mse:.4f}")
 print(f"R²: {r2:.4f}")
 
 ```
+
+## Conclusion
+
+This project explored how simple metadata from Food.com recipes — including time, ingredients, and tags — can be used to predict average user ratings before any reviews are submitted.
+
+We began with a **baseline linear regression** using raw features. While interpretable and efficient, its performance was limited:
+
+- **Baseline RMSE**: 0.1269  
+- **Baseline R²**: 0.0061
+
+The low R² value suggests that the linear model explained very little variance in the target, likely due to:
+- nonlinear relationships between preparation time and satisfaction
+- interaction effects between complexity and ingredients
+- underutilization of latent structure in categorical tags
+
+To address these limitations, we engineered four domain-informed features:
+We then used a **Random Forest Regressor**, which yielded notable gains:
+
+- **Final RMSE**: 0.1128  
+- **Final R²**: 0.1162  
+- **Best Parameters**:  
+  `max_depth=15`, `min_samples_split=2`, `n_estimators=200`
+
+### Why Random Forest?
+
+Random Forests are well-suited for this task because:
+- They naturally model **nonlinear relationships** without requiring explicit transformations
+- They handle **categorical encodings** (like one-hot tags) robustly
+- They are less sensitive to **feature scale** and **outliers**
+- They can capture **interactions** between features such as time-effort tradeoffs
+
+Despite the modest R², the observed improvement over the linear baseline confirms that more expressive models and thoughtfully engineered features can extract additional structure from even simple recipe metadata. Future work could incorporate textual reviews or image embeddings to further boost performance.
+
 
 
